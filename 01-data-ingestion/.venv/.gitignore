@@ -1,0 +1,26 @@
+# Python virtual environment
+.venv/
+*.venv
+
+# Jupyter notebook checkpoints
+.ipynb_checkpoints/
+01-data-ingestion/.ipynb_checkpoints/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Postgres data folder (don’t commit DB files)
+01-data-ingestion/de-docker/postgres-data/
+
+# Lock files
+uv.lock
+
+# Environment files
+.env
+
+# Optional: ignore notebook outputs
+*.ipynb
+**/postgres-data/
