@@ -105,145 +105,6 @@ wget https://d37ci6vzurychx.cloudfront.net/trip-data/green_tripdata_2025-11.parq
 import pandas as pd
 from sqlalchemy import create_engine
 from tqdm.auto import tqdm
-import click
-import requests
-
-
-url = r'https://github.com/DataTalksClub/nyc-tlc-data/releases/download/misc/taxi_zone_lookup.csv'
-pg_user = 'root'
-pg_pass = 'root'
-pg_host = 'localhost'
-pg_port = '5432'
-pg_db = 'ny_taxi'
-year = 2025
-month = 11
-
-chunksize = 100000
-target_table = 'Zone'
-engine = create_engine(f'postgresql://{pg_user}:{pg_pass}@{pg_host}:{pg_port}/{pg_db}')
-
-
-def get_file_size(url: str) -> int:
-    """Get the file size from URL headers."""
-    try:
-        response = requests.head(url, allow_redirects=True)
-        return int(response.headers.get('content-length', 0))
-    except:
-        return 0
-
-
-def ingest_data(
-        url: str,
-        engine,
-        target_table: str,
-        chunksize: int = 100000,
-) -> dict:
-    """
-    Ingest CSV data from URL into SQL database in chunks with progress tracking.
-    
-    Returns:
-        dict: Statistics about the ingestion (total_rows, chunks_processed)
-    """
-    total_rows = 0
-    chunks_processed = 0
-    
-    try:
-        print(f"Starting data ingestion from: {url}")
-        print(f"Target table: {target_table}")
-        print(f"Chunk size: {chunksize:,} rows")
-        print("-" * 60)
-        
-        # Get file size for progress bar
-        file_size = get_file_size(url)
-        if file_size > 0:
-            print(f"File size: {file_size / (1024*1024):.2f} MB")
-        
-        # Create iterator
-        df_iter = pd.read_csv(url, iterator=True, chunksize=chunksize)
-        
-        # Create table from first chunk
-        print("\n📋 Creating table schema...")
-        first_chunk = next(df_iter)
-        first_chunk.head(0).to_sql(
-            name=target_table,
-            con=engine,
-            if_exists="replace",
-            index=False
-        )
-        print(f"✓ Table '{target_table}' created with {len(first_chunk.columns)} columns")
-        
-        # Insert first chunk
-        print(f"\n📥 Inserting data...")
-        first_chunk.to_sql(
-            name=target_table,
-            con=engine,
-            if_exists="append",
-            index=False
-        )
-        total_rows += len(first_chunk)
-        chunks_processed += 1
-        
-        # Progress bar for remaining chunks
-        pbar = tqdm(
-            df_iter,
-            desc="Progress",
-            unit="chunk",
-            bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} chunks [{elapsed}<{remaining}]"
-        )
-        
-        # Insert remaining chunks with progress
-        for df_chunk in pbar:
-            df_chunk.to_sql(
-                name=target_table,
-                con=engine,
-                if_exists="append",
-                index=False
-            )
-            total_rows += len(df_chunk)
-            chunks_processed += 1
-            
-            # Update progress description with row count
-            pbar.set_postfix({"rows": f"{total_rows:,}"})
-        
-        pbar.close()
-        
-        print("\n" + "=" * 60)
-        print(f"✓ Ingestion complete!")
-        print(f"  • Total rows inserted: {total_rows:,}")
-        print(f"  • Chunks processed: {chunks_processed}")
-        print(f"  • Table: {target_table}")
-        print("=" * 60)
-        
-        return {
-            "total_rows": total_rows,
-            "chunks_processed": chunks_processed,
-            "target_table": target_table
-        }
-        
-    except Exception as e:
-        print(f"\n✗ Error during ingestion: {str(e)}")
-        raise
-
-
-if __name__ == "__main__":
-    # Run the ingestion
-    stats = ingest_data(
-        url=url,
-        engine=engine,
-        target_table=target_table,
-        chunksize=chunksize
-    )`
-```
-
-### Taxi Zone Lookup Data
-```bash
-wget https://github.com/DataTalksClub/nyc-tlc-data/releases/download/misc/taxi_zone_lookup.csv
-```
-### Taxi Zone Lookup Data (Pipeline)
-```
-import pandas as pd
-from sqlalchemy import create_engine
-from tqdm.auto import tqdm
 import requests
 import tempfile
 import os
@@ -408,6 +269,147 @@ if __name__ == "__main__":
         target_table=target_table,
         chunksize=chunksize
     )
+
+```
+
+### Taxi Zone Lookup Data
+```bash
+wget https://github.com/DataTalksClub/nyc-tlc-data/releases/download/misc/taxi_zone_lookup.csv
+```
+### Taxi Zone Lookup Data (Pipeline)
+```
+
+import pandas as pd
+from sqlalchemy import create_engine
+from tqdm.auto import tqdm
+import click
+import requests
+
+
+url = r'https://github.com/DataTalksClub/nyc-tlc-data/releases/download/misc/taxi_zone_lookup.csv'
+pg_user = 'root'
+pg_pass = 'root'
+pg_host = 'localhost'
+pg_port = '5432'
+pg_db = 'ny_taxi'
+year = 2025
+month = 11
+
+chunksize = 100000
+target_table = 'Zone'
+engine = create_engine(f'postgresql://{pg_user}:{pg_pass}@{pg_host}:{pg_port}/{pg_db}')
+
+
+def get_file_size(url: str) -> int:
+    """Get the file size from URL headers."""
+    try:
+        response = requests.head(url, allow_redirects=True)
+        return int(response.headers.get('content-length', 0))
+    except:
+        return 0
+
+
+def ingest_data(
+        url: str,
+        engine,
+        target_table: str,
+        chunksize: int = 100000,
+) -> dict:
+    """
+    Ingest CSV data from URL into SQL database in chunks with progress tracking.
+    
+    Returns:
+        dict: Statistics about the ingestion (total_rows, chunks_processed)
+    """
+    total_rows = 0
+    chunks_processed = 0
+    
+    try:
+        print(f"Starting data ingestion from: {url}")
+        print(f"Target table: {target_table}")
+        print(f"Chunk size: {chunksize:,} rows")
+        print("-" * 60)
+        
+        # Get file size for progress bar
+        file_size = get_file_size(url)
+        if file_size > 0:
+            print(f"File size: {file_size / (1024*1024):.2f} MB")
+        
+        # Create iterator
+        df_iter = pd.read_csv(url, iterator=True, chunksize=chunksize)
+        
+        # Create table from first chunk
+        print("\n📋 Creating table schema...")
+        first_chunk = next(df_iter)
+        first_chunk.head(0).to_sql(
+            name=target_table,
+            con=engine,
+            if_exists="replace",
+            index=False
+        )
+        print(f"✓ Table '{target_table}' created with {len(first_chunk.columns)} columns")
+        
+        # Insert first chunk
+        print(f"\n📥 Inserting data...")
+        first_chunk.to_sql(
+            name=target_table,
+            con=engine,
+            if_exists="append",
+            index=False
+        )
+        total_rows += len(first_chunk)
+        chunks_processed += 1
+        
+        # Progress bar for remaining chunks
+        pbar = tqdm(
+            df_iter,
+            desc="Progress",
+            unit="chunk",
+            bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} chunks [{elapsed}<{remaining}]"
+        )
+        
+        # Insert remaining chunks with progress
+        for df_chunk in pbar:
+            df_chunk.to_sql(
+                name=target_table,
+                con=engine,
+                if_exists="append",
+                index=False
+            )
+            total_rows += len(df_chunk)
+            chunks_processed += 1
+            
+            # Update progress description with row count
+            pbar.set_postfix({"rows": f"{total_rows:,}"})
+        
+        pbar.close()
+        
+        print("\n" + "=" * 60)
+        print(f"✓ Ingestion complete!")
+        print(f"  • Total rows inserted: {total_rows:,}")
+        print(f"  • Chunks processed: {chunks_processed}")
+        print(f"  • Table: {target_table}")
+        print("=" * 60)
+        
+        return {
+            "total_rows": total_rows,
+            "chunks_processed": chunks_processed,
+            "target_table": target_table
+        }
+        
+    except Exception as e:
+        print(f"\n✗ Error during ingestion: {str(e)}")
+        raise
+
+
+if __name__ == "__main__":
+    # Run the ingestion
+    stats = ingest_data(
+        url=url,
+        engine=engine,
+        target_table=target_table,
+        chunksize=chunksize
+    )`
 ```
 
 ---
